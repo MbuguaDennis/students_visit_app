@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>CSV Data Viewer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h2>CSV Data Viewer</h2>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul style="color:red;">
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <form method="GET" class="filter-form">
+        <label for="class">Filter Class:</label>
+        <input type="text" id="class" name="class" value="{{ filters.class }}" placeholder="e.g. 2BM" />
+
+        <label for="from_date">From Date:</label>
+        <input type="date" id="from_date" name="from_date" value="{{ filters.from_date }}" />
+
+        <label for="to_date">To Date:</label>
+        <input type="date" id="to_date" name="to_date" value="{{ filters.to_date }}" />
+
+        <button type="submit">Filter</button>
+        <a href="{{ url_for('show_data') }}">Clear Filters</a>
+    </form>
+
+    <div class="export-links">
+        <a href="{{ url_for('export_csv', class=filters.class, from_date=filters.from_date, to_date=filters.to_date) }}">Export CSV</a> |
+        <a href="{{ url_for('export_pdf', class=filters.class, from_date=filters.from_date, to_date=filters.to_date) }}">Export PDF</a> |
+        <a href="{{ url_for('upload_file') }}">Upload New CSV</a>
+    </div>
+
+    {% if filters.class or filters.from_date or filters.to_date %}
+      <div style="margin: 15px 0; color: green; font-weight: bold;">
+        Data
+        {% if filters.class %} for <em>{{ filters.class }}</em> {% endif %}
+        {% if filters.from_date or filters.to_date %}
+          filtered from
+          {% if filters.from_date %} {{ filters.from_date }} {% else %} the beginning {% endif %}
+          to
+          {% if filters.to_date %} {{ filters.to_date }} {% else %} now {% endif %}
+        {% endif %}
+        successfully. Total records: {{ total_rows }}
+      </div>
+    {% endif %}
+
+    <p>Total rows: {{ total_rows }}</p>
+
+    <table>
+        <thead>
+            <tr>
+                {% for col in columns %}
+                    <th>{{ col }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in data %}
+                <tr>
+                    {% for col in columns %}
+                        {% if 'http' in row[col]|string %}
+                            <td class="url-cell">
+                                <a href="{{ row[col] }}" title="{{ row[col] }}" target="_blank">
+                                    {{ row[col][:30] ~ ('...' if row[col]|length > 30 else '') }}
+                                </a>
+                            </td>
+                        {% else %}
+                            <td>{{ row[col] }}</td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="pagination">
+        {% if page > 1 %}
+            <a href="{{ url_for('show_data', page=page-1, class=filters.class, from_date=filters.from_date, to_date=filters.to_date) }}">Previous</a>
+        {% endif %}
+        <span>Page {{ page }} of {{ total_pages }}</span>
+        {% if page < total_pages %}
+            <a href="{{ url_for('show_data', page=page+1, class=filters.class, from_date=filters.from_date, to_date=filters.to_date) }}">Next</a>
+        {% endif %}
+    </div>
+</body>
+</html>
